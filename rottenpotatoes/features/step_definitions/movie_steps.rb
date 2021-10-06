@@ -10,7 +10,7 @@ Given (/the following movies exist/ ) do |movies_table|
 end
 
 Then (/(.*) seed movies should exist/) do | n_seeds |
-  Movie.count.should be n_seeds.to_i
+  expect(Movie.count).to eq n_seeds.to_i
 end
 
 # Make sure that one string (regexp) occurs before or after another one
@@ -19,8 +19,26 @@ end
 Then (/I should see "(.*)" before "(.*)"/) do |e1, e2|
   #  ensure that that e1 occurs before e2.
   #  page.body is the entire content of the page as a string.
-  page.body =~ /#{e1}.*{e2}/m
+  m1 = e1.delete_prefix('"').delete_suffix('"')
+  m2 = e2.delete_prefix('"').delete_suffix('"')
+  expect(/#{m1}.*#{m2}/m).to match(page.body)
   # fail "Unimplemented"
+end
+
+When (/I click on 'Refresh' button/) do
+  click_button('Refresh')
+end
+
+Then (/I should (not )?see the movies: (.*)$/) do |x, movies_list|
+  movies = movies_list.split(', ')
+  movies.each do |movie|
+    movie_name = movie.delete_prefix('"').delete_suffix('"')
+    if x
+      expect(page).not_to have_content(movie_name)
+    else
+      expect(page).to have_content(movie_name)
+    end
+  end
 end
 
 # Make it easier to express checking or unchecking several boxes at once
@@ -34,9 +52,9 @@ When (/I (un)?check the following ratings: (.*)/) do |uncheck, rating_list|
   selected_ratings = rating_list.split(', ')
   selected_ratings.each do |rating|
     if uncheck 
-        uncheck("selected_ratings[#{rating}]")
+        uncheck("ratings[#{rating}]")
     else
-        check("selected_ratings[#{rating}]")
+        check("ratings[#{rating}]")
     end
   end
   # fail "Unimplemented"
@@ -45,7 +63,7 @@ end
 Then (/I should see all the movies/) do
   # Make sure that all the movies in the app are visible in the table
   total_movies = Movie.count
-  total_rows = page.all('table#movies tr').count
+  total_rows = page.all('table#movies tbody tr').count
   expect(total_rows).to eq total_movies
   # fail "Unimplemented"
 end
